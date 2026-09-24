@@ -108,7 +108,7 @@
           <summary style="cursor:pointer; display:flex; justify-content:space-between; gap:10px; align-items:center; list-style:none;">
             <span style="flex:1;">
               <strong>${escapeHtml(truncate(b.descricao, 90))}</strong><br/>
-              <span class="cell-muted" style="font-size:12.5px;">${escapeHtml(b.tipo_bem || "")} · Processo ${escapeHtml(b.numero_registro || b.numero_autos || "—")} · Recebido em ${fmtDate(b.data_recebimento)}</span>
+              <span class="cell-muted" style="font-size:12.5px;">${[b.tipo_bem, "Processo " + (b.numero_registro || b.numero_autos || "—"), "Recebido em " + fmtDate(b.data_recebimento)].filter(Boolean).map(escapeHtml).join(" · ")}</span>
             </span>
             <span class="badge ${st.cls}">${st.label}</span>
           </summary>

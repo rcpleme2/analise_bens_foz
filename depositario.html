@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Depositário — Bens depositados</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="topbar">
+  <h1>📦 Acompanhamento de Bens Depositados</h1>
+  <nav>
+    <a href="index.html">Resumo geral</a>
+    <a href="depositarios.html">Depositários</a>
+    <a href="bens.html">Todos os bens</a>
+    <a href="admin.html">Administração</a>
+  </nav>
+</div>
+
+<main>
+  <div class="breadcrumb"><a href="depositarios.html">Depositários</a> / <span id="bcName">…</span></div>
+  <div id="content"></div>
+</main>
+
+<script src="js/data.js"></script>
+<script>
+(async function () {
+  const params = new URLSearchParams(location.search);
+  const id = params.get("id");
+  const content = document.getElementById("content");
+  const [bens, depositarios] = await Promise.all([loadBens(), loadDepositarios()]);
+  const dep = depositarios.find((d) => d.id === id);
+
+  if (!dep) {
+    content.innerHTML = `<div class="empty-state">Depositário não encontrado. <a href="depositarios.html">Voltar à lista</a>.</div>`;
+    return;
+  }
+  document.getElementById("bcName").textContent = dep.nome;
+  document.title = dep.nome + " — Bens depositados";
+
+  const bensDoDep = bens.filter((b) => b.depositario_id === dep.id);
+  const c = { aguardando: 0, andamento: 0, concluido: 0, nao_localizado: 0 };
+  for (const b of bensDoDep) c[currentStatus(b)]++;
+  const t = bensDoDep.length;
+
+  const infoRows = [
+    ["Contato", dep.contato_nome],
+    ["Telefone", dep.contato_telefone],
+    ["E-mail", dep.contato_email],
+    ["CPF/CNPJ", dep.cpf_cnpj],
+    ["Endereço", dep.endereco],
+  ].filter(([, v]) => v);
+
+  content.innerHTML = `
+    <h2>${escapeHtml(dep.nome)}</h2>
+    <p class="subtitle">${dep.observacoes ? escapeHtml(dep.observacoes) : "Progresso de destinação dos bens sob responsabilidade deste depositário."}</p>
+
+    ${infoRows.length ? `<div class="panel"><h3>Dados de contato</h3>
+      <div class="form-grid">
+        ${infoRows.map(([k, v]) => `<div><label>${k}</label><div>${escapeHtml(v)}</div></div>`).join("")}
+      </div>
+    </div>` : ""}
+
+    <div class="stat-row">
+      <div class="stat-tile"><div class="value">${t}</div><div class="label">Total de bens</div></div>
+      <div class="stat-tile"><div class="value">${c.aguardando}</div><div class="label">Aguardando destinação</div></div>
+      <div class="stat-tile accent-warning"><div class="value">${c.andamento}</div><div class="label">Em andamento</div></div>
+      <div class="stat-tile accent-good"><div class="value">${c.concluido}</div><div class="label">Concluídos</div></div>
+      <div class="stat-tile accent-critical"><div class="value">${c.nao_localizado}</div><div class="label">Não localizados</div></div>
+    </div>
+
+    <div class="panel">
+      <h3>Bens sob responsabilidade</h3>
+      <div class="filters">
+        <input type="text" id="search" placeholder="Buscar por descrição ou processo..." />
+        <select id="statusFilter">
+          <option value="">Todos os status</option>
+          ${Object.entries(STATUS_DEF).map(([id, def]) => `<option value="${id}">${def.label}</option>`).join("")}
+        </select>
+      </div>
+      <div id="bensList"></div>
+    </div>
+  `;
+
+  const search = document.getElementById("search");
+  const statusFilter = document.getElementById("statusFilter");
+  const bensList = document.getElementById("bensList");
+
+  function renderList() {
+    const q = search.value.toLowerCase().trim();
+    const sf = statusFilter.value;
+    const filtered = bensDoDep.filter((b) => {
+      const st = currentStatus(b);
+      if (sf && st !== sf) return false;
+      if (!q) return true;
+      return (b.descricao || "").toLowerCase().includes(q) || (b.numero_registro || "").toLowerCase().includes(q) || (b.numero_autos || "").toLowerCase().includes(q);
+    });
+    if (!filtered.length) {
+      bensList.innerHTML = `<div class="empty-state">Nenhum bem encontrado.</div>`;
+      return;
+    }
+    bensList.innerHTML = filtered
+      .map((b) => {
+        const st = statusInfo(currentStatus(b));
+        const hist = (b.historico || []).slice().reverse();
+        return `
+        <details style="border-bottom:1px solid var(--gridline); padding:10px 0;">
+          <summary style="cursor:pointer; display:flex; justify-content:space-between; gap:10px; align-items:center; list-style:none;">
+            <span style="flex:1;">
+              <strong>${escapeHtml(truncate(b.descricao, 90))}</strong><br/>
+              <span class="cell-muted" style="font-size:12.5px;">${escapeHtml(b.tipo_bem || "")} · Processo ${escapeHtml(b.numero_registro || b.numero_autos || "—")} · Recebido em ${fmtDate(b.data_recebimento)}</span>
+            </span>
+            <span class="badge ${st.cls}">${st.label}</span>
+          </summary>
+          <div style="margin-top:10px; padding-left:4px;">
+            ${b.local_atual ? `<p style="margin:4px 0;"><strong>Local atual:</strong> ${escapeHtml(b.local_atual)}</p>` : ""}
+            ${b.estado_conservacao ? `<p style="margin:4px 0;"><strong>Estado de conservação:</strong> ${escapeHtml(b.estado_conservacao)}</p>` : ""}
+            ${b.vara ? `<p style="margin:4px 0;"><strong>Vara:</strong> ${escapeHtml(b.vara)}</p>` : ""}
+            ${b.obs ? `<p style="margin:4px 0;"><strong>Observações:</strong> ${escapeHtml(b.obs)}</p>` : ""}
+            <h4 style="margin:14px 0 6px; font-size:13px;">Histórico de acompanhamento</h4>
+            ${hist.length ? `<ul class="hist-list">${hist.map((h) => `<li class="hist-item"><div class="hist-date">${fmtDate(h.data)} — ${statusInfo(h.status).label}${h.tipo_destinacao ? " · " + escapeHtml(h.tipo_destinacao) : ""}</div>${h.observacao ? `<div class="hist-obs">${escapeHtml(h.observacao)}</div>` : ""}</li>`).join("")}</ul>` : `<p class="cell-muted">Sem registros de acompanhamento ainda.</p>`}
+          </div>
+        </details>`;
+      })
+      .join("");
+  }
+
+  function truncate(s, n) { if (!s) return ""; return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+
+  search.addEventListener("input", renderList);
+  statusFilter.addEventListener("change", renderList);
+  renderList();
+})();
+</script>
+</body>
+</html>

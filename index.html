@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Resumo geral — Bens depositados</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="topbar">
+  <h1>📦 Acompanhamento de Bens Depositados</h1>
+  <nav>
+    <a href="index.html">Resumo geral</a>
+    <a href="depositarios.html">Depositários</a>
+    <a href="bens.html">Todos os bens</a>
+    <a href="admin.html">Administração</a>
+  </nav>
+</div>
+
+<main>
+  <h2>Resumo geral</h2>
+  <p class="subtitle">Visão consolidada da destinação dos bens sob depósito judicial, por status e por depositário.</p>
+
+  <div id="stats" class="stat-row"></div>
+
+  <div class="panel-row">
+    <div class="panel">
+      <h3>Bens por status de destinação</h3>
+      <div id="chartStatus"></div>
+    </div>
+    <div class="panel">
+      <h3>Bens por tipo</h3>
+      <div id="chartTipo"></div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+      <h3 style="margin:0;">Progresso por depositário</h3>
+      <a class="btn" href="depositarios.html">Ver todos os depositários →</a>
+    </div>
+    <div id="chartDepositarios" style="margin-top:12px;"></div>
+  </div>
+
+  <div class="panel" id="semDepositarioPanel" style="display:none;">
+    <h3>⚠️ Bens sem depositário cadastrado</h3>
+    <p class="subtitle" style="margin-bottom:10px;">Estes bens ainda não foram vinculados a um depositário. Cadastre os depositários e faça a atribuição na página de administração.</p>
+    <div id="semDepositarioList"></div>
+  </div>
+</main>
+
+<script src="js/data.js"></script>
+<script src="js/dashboard.js"></script>
+</body>
+</html>

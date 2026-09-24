@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Todos os bens — Bens depositados</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="topbar">
+  <h1>📦 Acompanhamento de Bens Depositados</h1>
+  <nav>
+    <a href="index.html">Resumo geral</a>
+    <a href="depositarios.html">Depositários</a>
+    <a href="bens.html">Todos os bens</a>
+    <a href="admin.html">Administração</a>
+  </nav>
+</div>
+
+<main>
+  <h2>Todos os bens</h2>
+  <p class="subtitle">Lista completa dos bens sob depósito judicial.</p>
+
+  <div class="filters">
+    <input type="text" id="search" placeholder="Buscar por descrição, processo ou partes..." />
+    <select id="statusFilter"><option value="">Todos os status</option></select>
+    <select id="depFilter"><option value="">Todos os depositários</option></select>
+    <select id="tipoFilter"><option value="">Todos os tipos</option></select>
+  </div>
+
+  <div class="panel" style="overflow-x:auto;">
+    <table>
+      <thead>
+        <tr>
+          <th>Bem</th>
+          <th>Tipo</th>
+          <th>Processo</th>
+          <th>Vara</th>
+          <th>Depositário</th>
+          <th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+    <div id="emptyState" class="empty-state" style="display:none;">Nenhum bem encontrado.</div>
+  </div>
+  <p class="cell-muted" id="countLabel"></p>
+</main>
+
+<script src="js/data.js"></script>
+<script>
+(async function () {
+  const [bens, depositarios] = await Promise.all([loadBens(), loadDepositarios()]);
+  const depById = new Map(depositarios.map((d) => [d.id, d]));
+
+  const search = document.getElementById("search");
+  const statusFilter = document.getElementById("statusFilter");
+  const depFilter = document.getElementById("depFilter");
+  const tipoFilter = document.getElementById("tipoFilter");
+  const tbody = document.getElementById("tbody");
+  const emptyState = document.getElementById("emptyState");
+  const countLabel = document.getElementById("countLabel");
+
+  statusFilter.innerHTML += Object.entries(STATUS_DEF).map(([id, def]) => `<option value="${id}">${def.label}</option>`).join("");
+  depFilter.innerHTML += depositarios.map((d) => `<option value="${d.id}">${escapeHtml(d.nome)}</option>`).join("") + `<option value="__none__">Sem depositário</option>`;
+  const tipos = [...new Set(bens.map((b) => (b.tipo_bem || "").trim()).filter(Boolean))].sort();
+  tipoFilter.innerHTML += tipos.map((t) => `<option value="${escapeHtml(t)}">${escapeHtml(t)}</option>`).join("");
+
+  function render() {
+    const q = search.value.toLowerCase().trim();
+    const sf = statusFilter.value;
+    const df = depFilter.value;
+    const tf = tipoFilter.value;
+    const filtered = bens.filter((b) => {
+      if (sf && currentStatus(b) !== sf) return false;
+      if (df === "__none__" && b.depositario_id) return false;
+      if (df && df !== "__none__" && b.depositario_id !== df) return false;
+      if (tf && (b.tipo_bem || "").trim() !== tf) return false;
+      if (!q) return true;
+      const hay = [b.descricao, b.numero_registro, b.numero_autos, b.partes].join(" ").toLowerCase();
+      return hay.includes(q);
+    });
+
+    countLabel.textContent = `${filtered.length} de ${bens.length} bens`;
+    if (!filtered.length) {
+      tbody.innerHTML = "";
+      emptyState.style.display = "";
+      return;
+    }
+    emptyState.style.display = "none";
+    tbody.innerHTML = filtered
+      .map((b) => {
+        const st = statusInfo(currentStatus(b));
+        const dep = depById.get(b.depositario_id);
+        return `<tr>
+          <td style="max-width:320px;">${escapeHtml(truncate(b.descricao, 90))}</td>
+          <td>${escapeHtml(b.tipo_bem || "—")}</td>
+          <td class="mono">${escapeHtml(b.numero_registro || b.numero_autos || "—")}</td>
+          <td>${escapeHtml(b.vara || "—")}</td>
+          <td>${dep ? `<a href="depositario.html?id=${encodeURIComponent(dep.id)}">${escapeHtml(dep.nome)}</a>` : '<span class="cell-muted">Não atribuído</span>'}</td>
+          <td><span class="badge ${st.cls}">${st.label}</span></td>
+        </tr>`;
+      })
+      .join("");
+  }
+
+  function truncate(s, n) { if (!s) return ""; return s.length > n ? s.slice(0, n - 1) + "…" : s; }
+
+  [search, statusFilter, depFilter, tipoFilter].forEach((el) => el.addEventListener("input", render));
+  render();
+})();
+</script>
+</body>
+</html>

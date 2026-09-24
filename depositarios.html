@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Depositários — Bens depositados</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="topbar">
+  <h1>📦 Acompanhamento de Bens Depositados</h1>
+  <nav>
+    <a href="index.html">Resumo geral</a>
+    <a href="depositarios.html">Depositários</a>
+    <a href="bens.html">Todos os bens</a>
+    <a href="admin.html">Administração</a>
+  </nav>
+</div>
+
+<main>
+  <h2>Depositários</h2>
+  <p class="subtitle">Cada depositário público tem uma página própria com os bens sob sua responsabilidade e o progresso de destinação.</p>
+
+  <div class="filters">
+    <input type="text" id="search" placeholder="Buscar depositário por nome..." />
+  </div>
+
+  <div id="grid" class="dep-grid"></div>
+</main>
+
+<script src="js/data.js"></script>
+<script>
+(async function () {
+  const [bens, depositarios] = await Promise.all([loadBens(), loadDepositarios()]);
+  const grid = document.getElementById("grid");
+  const search = document.getElementById("search");
+
+  function render(filter) {
+    const f = (filter || "").toLowerCase().trim();
+    const list = depositarios.filter((d) => !f || d.nome.toLowerCase().includes(f));
+    if (!list.length) {
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1;">
+        ${depositarios.length ? "Nenhum depositário encontrado." : 'Nenhum depositário cadastrado ainda. Cadastre em <a href="admin.html">Administração</a>.'}
+      </div>`;
+      return;
+    }
+    grid.innerHTML = list
+      .map((d) => {
+        const bensDoDep = bens.filter((b) => b.depositario_id === d.id);
+        const c = { aguardando: 0, andamento: 0, concluido: 0, nao_localizado: 0 };
+        for (const b of bensDoDep) c[currentStatus(b)]++;
+        const t = bensDoDep.length;
+        const segs = Object.entries(STATUS_DEF)
+          .map(([id, def]) => {
+            const v = c[id];
+            if (!v) return "";
+            const pct = t ? (v / t) * 100 : 0;
+            return `<span title="${def.label}: ${v}" style="width:${pct}%; background:${def.color}"></span>`;
+          })
+          .join("");
+        const pctConcluido = t ? Math.round((c.concluido / t) * 100) : 0;
+        return `
+        <a class="dep-card" href="depositario.html?id=${encodeURIComponent(d.id)}" style="text-decoration:none; color:inherit;">
+          <div class="name">${escapeHtml(d.nome)}</div>
+          <div class="meta">${escapeHtml(d.contato_nome || "Sem contato cadastrado")}</div>
+          <div class="dep-progress-track">${segs || '<span style="width:100%; background:var(--gridline)"></span>'}</div>
+          <div class="meta">${t} ${t === 1 ? "bem" : "bens"} · ${pctConcluido}% concluído</div>
+        </a>`;
+      })
+      .join("");
+  }
+
+  render("");
+  search.addEventListener("input", () => render(search.value));
+})();
+</script>
+</body>
+</html>

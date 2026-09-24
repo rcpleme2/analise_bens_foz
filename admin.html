@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Administração — Bens depositados</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+<div class="topbar">
+  <h1>📦 Acompanhamento de Bens Depositados</h1>
+  <nav>
+    <a href="index.html">Resumo geral</a>
+    <a href="depositarios.html">Depositários</a>
+    <a href="bens.html">Todos os bens</a>
+    <a href="admin.html">Administração</a>
+  </nav>
+</div>
+
+<main>
+  <h2>Administração</h2>
+  <p class="subtitle">Cadastre depositários, atribua bens e registre o progresso de destinação. Este é um site estático — suas edições ficam salvas neste navegador até serem exportadas e enviadas ao repositório.</p>
+
+  <div class="admin-warning">
+    ⚠️ <strong>Como funciona:</strong> as alterações feitas aqui são salvas apenas no <em>rascunho local deste navegador</em>.
+    Para que elas apareçam no site publicado para todos, clique em <strong>“Baixar dados atualizados”</strong> ao final da página
+    e substitua os arquivos <code>data/bens.json</code> e <code>data/depositarios.json</code> no repositório (commit + push, ou upload pela interface do GitHub).
+    O GitHub Pages republica o site automaticamente após o push.
+  </div>
+
+  <div class="panel">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+      <h3 style="margin:0;">Depositários</h3>
+      <button class="btn btn-primary" id="btnNewDep">+ Novo depositário</button>
+    </div>
+    <div id="depForm" style="display:none; margin-top:14px; border-top:1px solid var(--gridline); padding-top:14px;"></div>
+    <div id="depTableWrap" style="margin-top:14px;"></div>
+  </div>
+
+  <div class="panel">
+    <h3>Bens</h3>
+    <div class="filters">
+      <input type="text" id="bensSearch" placeholder="Buscar por descrição ou processo..." />
+      <select id="bensDepFilter"><option value="">Todos os depositários</option><option value="__none__">Sem depositário</option></select>
+      <select id="bensStatusFilter"><option value="">Todos os status</option></select>
+    </div>
+    <div id="bensTableWrap"></div>
+  </div>
+
+  <div class="panel" id="bemEditPanel" style="display:none;"></div>
+
+  <div class="panel">
+    <h3>Exportar dados</h3>
+    <p class="cell-muted" style="margin-bottom:12px;">Baixe os arquivos atualizados e substitua-os em <code>data/</code> no repositório para publicar as mudanças.</p>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <button class="btn btn-primary" id="btnExportBens">⬇ Baixar bens.json</button>
+      <button class="btn btn-primary" id="btnExportDeps">⬇ Baixar depositarios.json</button>
+      <button class="btn btn-danger" id="btnResetDraft">Descartar rascunho local</button>
+    </div>
+  </div>
+</main>
+
+<script src="js/data.js"></script>
+<script src="js/admin.js"></script>
+</body>
+</html>
